@@ -38,7 +38,6 @@ Gabox is a marketplace of gacha machines on Solana mainnet. Each machine is a br
 - Answers are JSON with data and meta. meta.cluster names the cluster.
 - Every u64 is a string of base units. Divide by the decimals yourself.
 - A list sends page.nextCursor. Send it back as cursor for the next page.
-- Without a key: 30 requests a minute for each IP address. With a key: 120. Ask for one at hello@gabox.fun.
 - Send an API key as `Authorization: Bearer gbx_...`.
 
 ## The calls
@@ -278,6 +277,16 @@ await signAndSend(data.transaction, [wallet]) // every creator fee, one signatur
 - `GET /v1/openapi.json`: Every live route, as OpenAPI 3.1. `https://actions.gabox.fun/v1/openapi.json`
 - `GET /v1/idl.json`: The program's Anchor IDL. `https://actions.gabox.fun/v1/idl.json`
 
+## Rate limits
+
+Over a limit, the API answers 429 with `retry-after`, in seconds. Wait that long, then send again. A key counts all its calls together. Ask for a key or a higher limit at hello@gabox.fun.
+
+| Calls | Per minute | Burst | Counted per |
+| --- | --- | --- | --- |
+| Reads without a key: Every GET /v1 call | 30 | 10 | IP address |
+| Reads with an API key: Every GET /v1 call | 120 | 30 | Key |
+| Builds, with an API key (not live yet): POST /v1/…/build | 20 | 5 | Key |
+
 ## Errors
 
 Every error answers `{ "error": { "code", "message" } }`.
@@ -285,9 +294,9 @@ Every error answers `{ "error": { "code", "message" } }`.
 | Code | Status | Meaning |
 | --- | --- | --- |
 | `bad_request` | 400 | A parameter is missing, unknown or malformed. |
-| `unauthorized` | 401 | The API key is malformed or not valid. |
+| `unauthorized` | 401 | The API key is malformed, unknown or revoked. A request with no key never gets this. |
 | `not_found` | 404 | No such machine, draw or route. |
-| `rate_limited` | 429 | Over the limit. Wait the retry-after seconds. |
+| `rate_limited` | 429 | Over a limit. Wait the retry-after seconds, then try again. |
 | `internal` | 500 | Something broke on our side. Safe to retry. |
 
 ## Common tasks
